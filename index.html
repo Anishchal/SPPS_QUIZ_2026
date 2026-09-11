@@ -221,6 +221,12 @@
       margin-bottom: 25px;
     }
 
+    .record-status {
+      font-size: 0.9rem;
+      color: #64748b;
+      margin-bottom: 15px;
+    }
+
     .cert-actions {
       display: flex;
       flex-direction: column;
@@ -309,11 +315,12 @@
     <button type="button" class="btn" id="nextBtn">Next Question</button>
   </main>
 
-  <!-- Results screen without marks -->
+  <!-- Results screen -->
   <div class="quiz-card results-screen" id="resultsCard">
     <div class="completion-badge">✓</div>
     <h2>Quiz Completed!</h2>
     <div class="thank-you-msg" id="thankYouMsg"></div>
+    <div class="record-status" id="recordStatus">Saving results to spreadsheet...</div>
 
     <div class="cert-actions">
       <button type="button" class="btn btn-cert" id="downloadCertBtn" onclick="downloadSPPSCertificate()">
@@ -577,7 +584,9 @@
     // User & Quiz State
     let studentInfo = { name: "", school: "", email: "" };
     let selectedQuestions = [];
+    let userAnswers = []; // Store question results & selected answers
     let currentIndex = 0;
+    let totalScore = 0;
     const preloadedImageCache = [];
 
     // Helper: Pick n random elements from an array
@@ -615,7 +624,9 @@
       const hardPicks = getRandomSample(questionBank.hard, 3).map(q => ({ ...q, tier: "Hard" }));
 
       selectedQuestions = [...easyPicks, ...medPicks, ...hardPicks];
+      userAnswers = [];
       currentIndex = 0;
+      totalScore = 0;
 
       preloadQuizImages(selectedQuestions);
       renderQuestion();
@@ -667,6 +678,18 @@
         return;
       }
 
+      const currentQ = selectedQuestions[currentIndex];
+      const isCorrect = selected.value.toUpperCase() === currentQ.answer.toUpperCase();
+      if (isCorrect) totalScore++;
+
+      userAnswers.push({
+        questionId: currentQ.id,
+        questionText: currentQ.text,
+        userSelected: selected.value,
+        correctAnswer: currentQ.answer,
+        isCorrect: isCorrect
+      });
+
       currentIndex++;
       if (currentIndex < selectedQuestions.length) {
         renderQuestion();
@@ -675,7 +698,7 @@
       }
     });
 
-    // Display Results Screen
+    // Display Results Screen and automatically persist data to sheet
     function showResults() {
       document.getElementById("quizCard").style.display = "none";
       const resultsCard = document.getElementById("resultsCard");
@@ -683,8 +706,39 @@
 
       document.getElementById("thankYouMsg").innerHTML = `
         Thank you, <strong>${escapeHTML(studentInfo.name)}</strong> from <strong>${escapeHTML(studentInfo.school)}</strong>, for participating in the SPPS Quiz Competition!<br/>
-        Your responses have been successfully recorded. You can download your Certificate of Participation or have it delivered straight to your email.
+        Your responses have been recorded. You can download your Certificate of Participation or have it delivered straight to your email.
       `;
+
+      submitQuizResults();
+    }
+
+    // Automatically send full result data to Google Sheets
+    function submitQuizResults() {
+      const recordStatus = document.getElementById("recordStatus");
+
+      const payload = {
+        action: "recordQuizSubmission",
+        name: studentInfo.name,
+        school: studentInfo.school,
+        email: studentInfo.email,
+        score: totalScore,
+        maxScore: selectedQuestions.length,
+        answers: userAnswers
+      };
+
+      fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+      .then(() => {
+        recordStatus.textContent = "✓ Results successfully recorded in system.";
+      })
+      .catch((err) => {
+        console.error("Data recording error:", err);
+        recordStatus.textContent = "⚠️ Could not save results directly. Please check connection.";
+      });
     }
 
     // Send Certificate via Email through Google Apps Script backend
@@ -708,6 +762,7 @@
         mode: "no-cors",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          action: "sendEmailCertificate",
           name: studentInfo.name,
           email: studentInfo.email,
           school: studentInfo.school

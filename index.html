@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SPPS Quiz Competiton</title>
+  <title>SPPS Quiz Competition</title>
   <!-- jsPDF Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
@@ -236,6 +236,14 @@
       background: linear-gradient(135deg, #047857, #059669);
     }
 
+    .btn-email {
+      background: linear-gradient(135deg, #0072ff, #00d2ff);
+    }
+
+    .btn-email:hover {
+      background: linear-gradient(135deg, #005bb5, #00b4d8);
+    }
+
     .btn-secondary {
       background: #64748b;
     }
@@ -245,17 +253,17 @@
     }
 
     .cert-status {
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       font-weight: 600;
-      color: #059669;
-      min-height: 20px;
+      min-height: 22px;
+      margin-top: 8px;
     }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>SPPS Quiz Competiton</h1>
+    <h1>SPPS Quiz Competition</h1>
   </header>
 
   <!-- Modal registration popup -->
@@ -306,19 +314,26 @@
     <div class="completion-badge">✓</div>
     <h2>Quiz Completed!</h2>
     <div class="thank-you-msg" id="thankYouMsg"></div>
-    <div class="cert-status" id="certStatus"></div>
 
     <div class="cert-actions">
       <button type="button" class="btn btn-cert" id="downloadCertBtn" onclick="downloadSPPSCertificate()">
         🎓 Download Certificate of Participation (PDF)
       </button>
+      <button type="button" class="btn btn-email" id="emailCertBtn" onclick="sendCertificateEmail()">
+        ✉️ Email Certificate of Participation
+      </button>
       <button type="button" class="btn btn-secondary" onclick="location.reload()">
         Retake Quiz
       </button>
     </div>
+
+    <div class="cert-status" id="certStatus"></div>
   </div>
 
   <script>
+    // Google Apps Script Web App Deployment URL
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzyAs_SPekrYLzL9qFSyW1yYsmNOXswI3yXl2zsMbJwTFwRB_dB1tAGzJybEXmNmTwB/exec";
+
     // Complete 30-Question Bank divided by tier
     const questionBank = {
       easy: [
@@ -571,7 +586,7 @@
       return shuffled.slice(0, count);
     }
 
-    // Helper: Preload all images chosen for the quiz into memory
+    // Preload selected images immediately to avoid display lag
     function preloadQuizImages(questions) {
       questions.forEach(q => {
         const img = new Image();
@@ -602,9 +617,7 @@
       selectedQuestions = [...easyPicks, ...medPicks, ...hardPicks];
       currentIndex = 0;
 
-      // Preload the 10 selected question images immediately
       preloadQuizImages(selectedQuestions);
-
       renderQuestion();
     }
 
@@ -616,12 +629,10 @@
       document.getElementById("questionTier").textContent = `Difficulty: ${currentQ.tier} (${currentQ.topic})`;
       document.getElementById("questionText").textContent = currentQ.text;
 
-      // Set image source according to format Q{number}.jpeg
       const imgElem = document.getElementById("questionImage");
       imgElem.src = `Q${currentQ.id}.jpeg`;
       imgElem.alt = `Figure for Question ${currentQ.id}`;
 
-      // Populate multiple-choice options
       const optionsContainer = document.getElementById("optionsContainer");
       optionsContainer.innerHTML = "";
 
@@ -664,7 +675,7 @@
       }
     });
 
-    // Display Results Screen (Score suppressed)
+    // Display Results Screen
     function showResults() {
       document.getElementById("quizCard").style.display = "none";
       const resultsCard = document.getElementById("resultsCard");
@@ -672,11 +683,52 @@
 
       document.getElementById("thankYouMsg").innerHTML = `
         Thank you, <strong>${escapeHTML(studentInfo.name)}</strong> from <strong>${escapeHTML(studentInfo.school)}</strong>, for participating in the SPPS Quiz Competition!<br/>
-        Your responses have been successfully recorded. Your Certificate of Participation is ready to download below.
+        Your responses have been successfully recorded. You can download your Certificate of Participation or have it delivered straight to your email.
       `;
     }
 
-    // Helper: Asynchronous Base64 loader for PDF assets
+    // Send Certificate via Email through Google Apps Script backend
+    function sendCertificateEmail() {
+      const statusEl = document.getElementById("certStatus");
+      const emailBtn = document.getElementById("emailCertBtn");
+
+      if (!studentInfo.email || !studentInfo.email.includes("@")) {
+        statusEl.style.color = "#dc2626";
+        statusEl.textContent = "⚠️ No valid email address on file. Please refresh and re-register.";
+        return;
+      }
+
+      statusEl.style.color = "#0284c7";
+      statusEl.textContent = "Generating and sending certificate to your email...";
+      emailBtn.disabled = true;
+      emailBtn.style.opacity = "0.7";
+
+      fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: studentInfo.name,
+          email: studentInfo.email,
+          school: studentInfo.school
+        })
+      })
+      .then(() => {
+        statusEl.style.color = "#059669";
+        statusEl.textContent = `✓ Certificate generated & sent to ${studentInfo.email}!`;
+        emailBtn.disabled = false;
+        emailBtn.style.opacity = "1";
+      })
+      .catch((err) => {
+        console.error("Email sending error:", err);
+        statusEl.style.color = "#dc2626";
+        statusEl.textContent = "⚠️ An error occurred while contacting the email service.";
+        emailBtn.disabled = false;
+        emailBtn.style.opacity = "1";
+      });
+    }
+
+    // Asynchronous Base64 loader for local image assets
     async function loadImageBase64(srcArray) {
       const sources = Array.isArray(srcArray) ? srcArray : [srcArray];
       for (const src of sources) {
@@ -705,7 +757,7 @@
       return null;
     }
 
-    // PDF Certificate Generation (SPPS ONLY, without score display)
+    // Direct Browser Download PDF Generation
     async function buildCertificatePDF(studentName, schoolName) {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({
@@ -717,7 +769,6 @@
       const pageWidth = 297;
       const pageHeight = 210;
 
-      // Certificate Background
       doc.setFillColor(255, 255, 255);
       doc.rect(0, 0, pageWidth, pageHeight, 'F');
 
@@ -739,19 +790,18 @@
       doc.line(10, pageHeight - 10 - cornerSize, 10 + cornerSize, pageHeight - 10);
       doc.line(pageWidth - 10 - cornerSize, pageHeight - 10, pageWidth - 10, pageHeight - 10 - cornerSize);
 
-      // SPPS Logo (SPPS ONLY - Centered top header)
+      // SPPS Logo
       const sppsBase64 = await loadImageBase64(['SPPS.jpg', 'SPPS_2.jpg', 'SPPS.png']);
       if (sppsBase64) {
         doc.addImage(sppsBase64, 'JPEG', (pageWidth / 2) - 25, 135, 50, 35);
       }
 
-      // SPPS Header Title
+      // Title & Headings
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(22);
       doc.setTextColor(30, 58, 138);
       doc.text('SOUTH PACIFIC PHYSICS SOCIETY (SPPS)', pageWidth / 2, 35, { align: 'center' });
 
-      // Certificate Subtitle
       doc.setFont('times', 'bold');
       doc.setFontSize(28);
       doc.setTextColor(24, 38, 64);
@@ -773,7 +823,7 @@
       doc.setLineWidth(0.8);
       doc.line(60, 84, pageWidth - 60, 84);
 
-      // School & Participation Statement (Score omitted)
+      // School & Participation Statement
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(13);
       doc.setTextColor(45, 55, 72);
@@ -831,13 +881,14 @@
       return doc;
     }
 
-    // Trigger PDF download
+    // Trigger local PDF download
     async function downloadSPPSCertificate() {
       const statusEl = document.getElementById("certStatus");
       const btn = document.getElementById("downloadCertBtn");
 
       try {
         btn.disabled = true;
+        statusEl.style.color = "#0284c7";
         statusEl.textContent = "Generating your SPPS Certificate...";
         const studentName = studentInfo.name || "Student Participant";
         const schoolName = studentInfo.school || "Participating School";
@@ -846,9 +897,11 @@
         const safeName = studentName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
         doc.save(`SPPS_Certificate_${safeName}.pdf`);
 
+        statusEl.style.color = "#059669";
         statusEl.textContent = "✓ Certificate downloaded successfully!";
       } catch (err) {
         console.error("Certificate generation error:", err);
+        statusEl.style.color = "#dc2626";
         statusEl.textContent = "⚠️ Error generating certificate. Please ensure signatures and logo are accessible.";
       } finally {
         btn.disabled = false;

@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SPPS Quiz Competiton</title>
+  <!-- jsPDF Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-hover: #1d4ed8;
+      --accent: #2563eb;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1f2937;
+      --border: #e2e8f0;
+      --gold: #d4af37;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    header {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    header h1 {
+      color: var(--primary);
+      font-size: 2rem;
+      margin-bottom: 5px;
+    }
+
+    /* Card Container */
+    .quiz-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 700px;
+      padding: 30px;
+      display: none;
+    }
+
+    /* Modal / Pop-up Window */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.65);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal {
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 480px;
+      width: 90%;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal h2 {
+      color: var(--primary);
+      margin-bottom: 15px;
+      font-size: 1.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 1rem;
+      outline: none;
+      transition: border 0.2s ease;
+    }
+
+    .form-group input:focus {
+      border-color: var(--accent);
+    }
+
+    /* Question UI */
+    .progress-bar {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      font-weight: 600;
+      color: #64748b;
+      font-size: 0.9rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+
+    .question-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+      line-height: 1.5;
+    }
+
+    .figure-container {
+      margin: 15px 0 25px 0;
+      text-align: center;
+    }
+
+    .figure-container img {
+      max-width: 100%;
+      max-height: 250px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      object-fit: contain;
+    }
+
+    .options-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 25px;
+    }
+
+    .option-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: #fff;
+    }
+
+    .option-item:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+
+    .option-item input {
+      margin-right: 12px;
+      accent-color: var(--accent);
+      transform: scale(1.2);
+    }
+
+    .btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s ease;
+    }
+
+    .btn:hover {
+      background: var(--primary-hover);
+    }
+
+    /* Results Screen */
+    .results-screen {
+      text-align: center;
+    }
+
+    .results-screen h2 {
+      color: var(--primary);
+      font-size: 1.8rem;
+      margin-bottom: 15px;
+    }
+
+    .completion-badge {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: #ecfdf5;
+      border: 3px solid #10b981;
+      color: #059669;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      margin: 20px auto;
+    }
+
+    .thank-you-msg {
+      font-size: 1.1rem;
+      line-height: 1.6;
+      color: #334155;
+      margin-bottom: 25px;
+    }
+
+    .cert-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 15px;
+    }
+
+    .btn-cert {
+      background: linear-gradient(135deg, #059669, #10b981);
+    }
+
+    .btn-cert:hover {
+      background: linear-gradient(135deg, #047857, #059669);
+    }
+
+    .btn-secondary {
+      background: #64748b;
+    }
+
+    .btn-secondary:hover {
+      background: #475569;
+    }
+
+    .cert-status {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #059669;
+      min-height: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>SPPS Quiz Competiton</h1>
+  </header>
+
+  <!-- Modal registration popup -->
+  <div class="modal-overlay" id="registrationModal">
+    <div class="modal">
+      <h2>Participant Registration</h2>
+      <p style="margin-bottom: 20px; color: #64748b; font-size: 0.9rem;">
+        Please enter your details before starting the competition.
+      </p>
+      <form id="studentForm">
+        <div class="form-group">
+          <label for="studentName">Full Name</label>
+          <input type="text" id="studentName" required placeholder="e.g. Jane Doe" />
+        </div>
+        <div class="form-group">
+          <label for="schoolName">School Name</label>
+          <input type="text" id="schoolName" required placeholder="e.g. Saint Peter High School" />
+        </div>
+        <div class="form-group">
+          <label for="studentEmail">Email Address</label>
+          <input type="email" id="studentEmail" required placeholder="e.g. student@example.com" />
+        </div>
+        <button type="submit" class="btn">Start Quiz</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Quiz question screen -->
+  <main class="quiz-card" id="quizCard">
+    <div class="progress-bar">
+      <span id="questionProgress">Question 1 of 10</span>
+      <span id="questionTier">Difficulty: Easy</span>
+    </div>
+
+    <div class="question-title" id="questionText"></div>
+
+    <div class="figure-container">
+      <img id="questionImage" src="" alt="Question Figure" />
+    </div>
+
+    <div class="options-list" id="optionsContainer"></div>
+
+    <button type="button" class="btn" id="nextBtn">Next Question</button>
+  </main>
+
+  <!-- Results screen without marks -->
+  <div class="quiz-card results-screen" id="resultsCard">
+    <div class="completion-badge">✓</div>
+    <h2>Quiz Completed!</h2>
+    <div class="thank-you-msg" id="thankYouMsg"></div>
+    <div class="cert-status" id="certStatus"></div>
+
+    <div class="cert-actions">
+      <button type="button" class="btn btn-cert" id="downloadCertBtn" onclick="downloadSPPSCertificate()">
+        🎓 Download Certificate of Participation (PDF)
+      </button>
+      <button type="button" class="btn btn-secondary" onclick="location.reload()">
+        Retake Quiz
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Complete 30-Question Bank divided by tier
+    const questionBank = {
+      easy: [
+        {
+          id: 1,
+          topic: "Vectors",
+          text: "A force vector F has a magnitude of 50 N directed at an angle of 30° above the positive x-axis. What is the horizontal component (Fx)?",
+          options: ["A) 25.0 N", "B) 35.4 N", "C) 43.3 N", "D) 50.0 N"],
+          answer: "C"
+        },
+        {
+          id: 2,
+          topic: "Mechanics / Kinematics",
+          text: "A car accelerates uniformly from rest to a velocity of 20 m/s in 5.0 s. How far does the car travel during this time?",
+          options: ["A) 25 m", "B) 50 m", "C) 100 m", "D) 200 m"],
+          answer: "B"
+        },
+        {
+          id: 3,
+          topic: "Forces",
+          text: "An object of mass 4.0 kg rests on a flat, frictionless horizontal table. A constant horizontal force of 12 N is applied. What is the acceleration of the object?",
+          options: ["A) 0.33 m/s²", "B) 3.0 m/s²", "C) 8.0 m/s²", "D) 48 m/s²"],
+          answer: "B"
+        },
+        {
+          id: 4,
+          topic: "Energy",
+          text: "A 0.50 kg ball is dropped from a height of 10 m. Assuming air resistance is negligible and g=9.8 m/s², what is its kinetic energy just before it hits the ground?",
+          options: ["A) 4.9 J", "B) 9.8 J", "C) 49 J", "D) 98 J"],
+          answer: "C"
+        },
+        {
+          id: 5,
+          topic: "Projectile Motion",
+          text: "A stone is thrown horizontally from the edge of a cliff. Neglecting air resistance, which statement correctly describes its acceleration during flight?",
+          options: [
+            "A) Constant horizontal acceleration only",
+            "B) Zero vertical acceleration",
+            "C) Constant acceleration directed vertically downward",
+            "D) Acceleration increasing steadily along the curved trajectory"
+          ],
+          answer: "C"
+        },
+        {
+          id: 6,
+          topic: "Wave Motion",
+          text: "A periodic wave on a string has a frequency of 250 Hz and a wavelength of 0.80 m. What is the speed of propagation of the wave?",
+          options: ["A) 125 m/s", "B) 200 m/s", "C) 312.5 m/s", "D) 500 m/s"],
+          answer: "B"
+        },
+        {
+          id: 7,
+          topic: "Centripetal Acceleration",
+          text: "A particle moves in a circular path of radius 0.5m at a constant speed of 2.0m/s. What is the magnitude of its centripetal acceleration?",
+          options: ["A) 1.0 m/s²", "B) 4.0 m/s²", "C) 8.0 m/s²", "D) 16.0 m/s²"],
+          answer: "C"
+        },
+        {
+          id: 8,
+          topic: "Ohm's Law",
+          text: "A 60 Ω resistor is connected across a 12 V direct-current battery. What is the electric current flowing through the resistor?",
+          options: ["A) 0.20 A", "B) 0.50 A", "C) 5.0 A", "D) 720 A"],
+          answer: "A"
+        },
+        {
+          id: 9,
+          topic: "Coulomb's Law",
+          text: "Two point charges, +q and +q, are separated by a distance r and exert a repulsive electrostatic force F on each other. If the distance between them is doubled to 2r, what is the new force?",
+          options: ["A) F/4", "B) F/2", "C) 2F", "D) 4F"],
+          answer: "A"
+        },
+        {
+          id: 10,
+          topic: "Circuit Analysis",
+          text: "Two identical resistors of resistance R are connected in parallel across a power supply. What is the equivalent resistance of the combination?",
+          options: ["A) R/4", "B) R/2", "C) R", "D) 2R"],
+          answer: "B"
+        }
+      ],
+      medium: [
+        {
+          id: 11,
+          topic: "Vectors",
+          text: "Two displacement vectors are given by A = 3.0i - 4.0j m and B = -1.0i + 6.0j m. What is the magnitude of the resultant vector R = A + B?",
+          options: ["A) 2.0 m", "B) 2.8 m", "C) 4.0 m", "D) 8.0 m"],
+          answer: "B"
+        },
+        {
+          id: 12,
+          topic: "Forces & Friction",
+          text: "A block of mass 5.0 kg sits on an inclined plane angled at 30° to the horizontal. If the block remains stationary, what is the magnitude of the static friction force acting on it? (Take g=9.8 m/s²)",
+          options: ["A) 12.3 N", "B) 24.5 N", "C) 42.4 N", "D) 49.0 N"],
+          answer: "B"
+        },
+        {
+          id: 13,
+          topic: "Mechanics / Momentum",
+          text: "A 2.0 kg cart moving at 6.0 m/s collides head-on with and sticks to a stationary 4.0 kg cart. How much kinetic energy is lost in the collision?",
+          options: ["A) 12 J", "B) 24 J", "C) 36 J", "D) 48 J"],
+          answer: "B"
+        },
+        {
+          id: 14,
+          topic: "Projectile Motion",
+          text: "A projectile is launched from ground level with an initial speed u at an angle θ to the horizontal. If its maximum height reached equals its total horizontal range (H = R), what is the value of tanθ?",
+          options: ["A) 1", "B) 2", "C) 4", "D) 3"],
+          answer: "C"
+        },
+        {
+          id: 15,
+          topic: "Energy & Springs",
+          text: "An ideal spring with spring constant k = 200 N/m is compressed by 0.15 m against a 0.25 kg mass on a frictionless horizontal floor. When released, what is the maximum speed attained by the mass?",
+          options: ["A) 2.45 m/s", "B) 3.00 m/s", "C) 4.24 m/s", "D) 6.00 m/s"],
+          answer: "C"
+        },
+        {
+          id: 16,
+          topic: "Wave Motion / Standing Waves",
+          text: "A tube open at one end and closed at the other has a length of 0.68 m. If the speed of sound in air is 340 m/s, what is the frequency of its third harmonic (the second resonant mode)?",
+          options: ["A) 125 Hz", "B) 250 Hz", "C) 375 Hz", "D) 500 Hz"],
+          answer: "C"
+        },
+        {
+          id: 17,
+          topic: "Wave Motion / Doppler Effect",
+          text: "An ambulance siren emits sound at a steady frequency f₀ = 600 Hz while traveling at 34 m/s toward a stationary observer. If the speed of sound is 340 m/s, what frequency does the observer detect?",
+          options: ["A) 545 Hz", "B) 600 Hz", "C) 660 Hz", "D) 667 Hz"],
+          answer: "D"
+        },
+        {
+          id: 18,
+          topic: "Coulomb's Law & Equilibrium",
+          text: "Two point charges +4q and +q are fixed a distance L apart along the x-axis. A third point charge +Q is placed along the line connecting them so that the net electrostatic force on it is zero. How far from +4q must +Q be placed?",
+          options: ["A) (1/3)L", "B) (1/2)L", "C) (2/3)L", "D) (3/4)L"],
+          answer: "C"
+        },
+        {
+          id: 19,
+          topic: "Ohm's Law & Internal Resistance",
+          text: "A battery has an electromotive force (EMF) E = 12.0 V and an internal resistance r = 0.50 Ω. When a load resistor R = 5.5 Ω is connected across its terminals, what is the terminal potential difference?",
+          options: ["A) 10.0 V", "B) 11.0 V", "C) 11.5 V", "D) 12.0 V"],
+          answer: "B"
+        },
+        {
+          id: 20,
+          topic: "Circuit Analysis",
+          text: "Three resistors are connected such that a 12 Ω and a 6.0 Ω resistor are in parallel, and this pair is connected in series with a 4.0 Ω resistor across a 16 V ideal DC source. What is the current flowing through the 12 Ω resistor?",
+          options: ["A) 0.67 A", "B) 1.0 A", "C) 1.33 A", "D) 2.0 A"],
+          answer: "A"
+        }
+      ],
+      hard: [
+        {
+          id: 21,
+          topic: "Forces / Static Equilibrium",
+          text: "A uniform ladder of mass M and length L rests against a smooth vertical wall and on a rough horizontal floor with static friction coefficient μs. What is the minimum angle θ that the ladder can make with the horizontal ground without slipping?",
+          options: ["A) tanθ = 1 / (2μs)", "B) tanθ = 1 / μs", "C) tanθ = 2 / μs", "D) tanθ = μs"],
+          answer: "A"
+        },
+        {
+          id: 22,
+          topic: "Projectile Motion / Curvature",
+          text: "A projectile is launched from ground level with speed v₀ at an elevation angle θ₀. What is the radius of curvature ρ of its trajectory at the maximum height apex?",
+          options: ["A) (v₀² sin²θ₀) / g", "B) (v₀² cos²θ₀) / g", "C) v₀² / g", "D) (v₀² cosθ₀) / g"],
+          answer: "B"
+        },
+        {
+          id: 23,
+          topic: "Projectile Motion",
+          text: "A stone is launched horizontally at 15 m/s from the edge of a high cliff. At what time t during its fall is its velocity vector inclined at 45° below the horizontal? (Assume g = 9.8 m/s²)",
+          options: ["A) 0.77 s", "B) 1.08 s", "C) 1.53 s", "D) 2.16 s"],
+          answer: "C"
+        },
+        {
+          id: 24,
+          topic: "Energy & Variable Force",
+          text: "A particle of mass m = 2.0 kg moves along the x-axis under the influence of a conservative force given by Fx = -6x² N (where x is in meters). If the particle has a velocity of 4.0 m/s at x = 1.0 m, what is its kinetic energy when it reaches x = 2.0 m?",
+          options: ["A) 2.0 J", "B) 8.0 J", "C) 16.0 J", "D) 30.0 J"],
+          answer: "A"
+        },
+        {
+          id: 25,
+          topic: "Vectors & Relative Velocity",
+          text: "Ship A is moving due north at 15 km/h. Ship B is initially 10 km due east of Ship A and is moving due west at 20 km/h. What is the distance of closest approach between the two ships?",
+          options: ["A) 4.0 km", "B) 6.0 km", "C) 8.0 km", "D) 10.0 km"],
+          answer: "B"
+        },
+        {
+          id: 26,
+          topic: "Wave Motion / Dispersion & Tension",
+          text: "A uniform heavy rope of mass M and length L hangs vertically from a ceiling under its own weight. A transverse wave pulse is generated at the bottom end. How long does it take for the pulse to reach the ceiling? (Neglect any stretching; g is constant)",
+          options: ["A) √(L / g)", "B) 2√(g / L)", "C) 2√(L / g)", "D) π√(L / g)"],
+          answer: "C"
+        },
+        {
+          id: 27,
+          topic: "Coulomb's Law / Electric Field & Pendulum",
+          text: "A small insulating sphere of mass m carrying a positive charge q is suspended by a massless insulating thread of length l in a uniform horizontal electric field E. In static equilibrium, the thread makes an angle θ with the vertical. What is the tension T in the thread?",
+          options: [
+            "A) T = mg / cosθ",
+            "B) T = √((mg)² + (qE)²)",
+            "C) T = mg + qE",
+            "D) T = mg · qE"
+          ],
+          answer: "B"
+        },
+        {
+          id: 28,
+          topic: "Coulomb's Law",
+          text: "Three identical point charges +q are fixed at the vertices of an equilateral triangle of side length a. What is the magnitude of the net electrostatic force acting on any single charge?",
+          options: [
+            "A) (kq²) / a²",
+            "B) (2kq²) / a²",
+            "C) (√3 kq²) / a²",
+            "D) 2(kq²) / a²"
+          ],
+          answer: "C"
+        },
+        {
+          id: 29,
+          topic: "Circuit Analysis / Maximum Power Transfer",
+          text: "A real DC voltage source has an open-circuit EMF E and an internal resistance r. A variable load resistor RL is connected across it. When RL is tuned to extract maximum power from the source, what fraction of the total power generated by the source EMF is delivered to RL?",
+          options: ["A) 25%", "B) 50%", "C) 75%", "D) 100%"],
+          answer: "B"
+        },
+        {
+          id: 30,
+          topic: "Mechanics / Variable Mass Dynamics",
+          text: "A rocket of initial mass m₀ starts from rest in free space (no gravity, no atmospheric drag). It burns fuel at a constant mass rate dm/dt = -β with a constant exhaust velocity uex relative to the rocket. What is the rocket's instantaneous acceleration when half of its initial mass has been consumed?",
+          options: [
+            "A) (β · uex) / m₀",
+            "B) (2β · uex) / m₀",
+            "C) (β · uex) / (2m₀)",
+            "D) (4β · uex) / m₀"
+          ],
+          answer: "B"
+        }
+      ]
+    };
+
+    // User & Quiz State
+    let studentInfo = { name: "", school: "", email: "" };
+    let selectedQuestions = [];
+    let currentIndex = 0;
+
+    // Helper: Pick n random elements from an array
+    function getRandomSample(arr, count) {
+      const shuffled = [...arr].sort(() => 0.5 - Math.random());
+      return shuffled.slice(0, count);
+    }
+
+    // Modal Form Submit Event
+    document.getElementById("studentForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      studentInfo.name = document.getElementById("studentName").value.trim();
+      studentInfo.school = document.getElementById("schoolName").value.trim();
+      studentInfo.email = document.getElementById("studentEmail").value.trim();
+
+      document.getElementById("registrationModal").style.display = "none";
+      document.getElementById("quizCard").style.display = "block";
+
+      startQuiz();
+    });
+
+    // Initialize Quiz: Pick 4 easy, 3 medium, 3 hard
+    function startQuiz() {
+      const easyPicks = getRandomSample(questionBank.easy, 4).map(q => ({ ...q, tier: "Easy" }));
+      const medPicks = getRandomSample(questionBank.medium, 3).map(q => ({ ...q, tier: "Medium" }));
+      const hardPicks = getRandomSample(questionBank.hard, 3).map(q => ({ ...q, tier: "Hard" }));
+
+      selectedQuestions = [...easyPicks, ...medPicks, ...hardPicks];
+      currentIndex = 0;
+
+      renderQuestion();
+    }
+
+    // Display Current Question
+    function renderQuestion() {
+      const currentQ = selectedQuestions[currentIndex];
+
+      document.getElementById("questionProgress").textContent = `Question ${currentIndex + 1} of ${selectedQuestions.length}`;
+      document.getElementById("questionTier").textContent = `Difficulty: ${currentQ.tier} (${currentQ.topic})`;
+      document.getElementById("questionText").textContent = currentQ.text;
+
+      // Set image source according to format Q{number}.jpeg
+      const imgElem = document.getElementById("questionImage");
+      imgElem.src = `Q${currentQ.id}.jpeg`;
+      imgElem.alt = `Figure for Question ${currentQ.id}`;
+
+      // Populate multiple-choice options
+      const optionsContainer = document.getElementById("optionsContainer");
+      optionsContainer.innerHTML = "";
+
+      currentQ.options.forEach((optText) => {
+        const optionKey = optText.trim().charAt(0);
+
+        const label = document.createElement("label");
+        label.className = "option-item";
+
+        const radio = document.createElement("input");
+        radio.type = "radio";
+        radio.name = "currentOption";
+        radio.value = optionKey;
+
+        label.appendChild(radio);
+        label.appendChild(document.createTextNode(optText));
+        optionsContainer.appendChild(label);
+      });
+
+      if (currentIndex === selectedQuestions.length - 1) {
+        document.getElementById("nextBtn").textContent = "Finish Quiz";
+      } else {
+        document.getElementById("nextBtn").textContent = "Next Question";
+      }
+    }
+
+    // Next / Submit Button Event Handler
+    document.getElementById("nextBtn").addEventListener("click", function () {
+      const selected = document.querySelector('input[name="currentOption"]:checked');
+      if (!selected) {
+        alert("Please select an answer before proceeding.");
+        return;
+      }
+
+      currentIndex++;
+      if (currentIndex < selectedQuestions.length) {
+        renderQuestion();
+      } else {
+        showResults();
+      }
+    });
+
+    // Display Results Screen (Score suppressed)
+    function showResults() {
+      document.getElementById("quizCard").style.display = "none";
+      const resultsCard = document.getElementById("resultsCard");
+      resultsCard.style.display = "block";
+
+      document.getElementById("thankYouMsg").innerHTML = `
+        Thank you, <strong>${escapeHTML(studentInfo.name)}</strong> from <strong>${escapeHTML(studentInfo.school)}</strong>, for participating in the SPPS Quiz Competition!<br/>
+        Your responses have been successfully recorded. Your Certificate of Participation is ready to download below.
+      `;
+    }
+
+    // Helper: Asynchronous Base64 loader for PDF assets
+    async function loadImageBase64(srcArray) {
+      const sources = Array.isArray(srcArray) ? srcArray : [srcArray];
+      for (const src of sources) {
+        try {
+          const result = await new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => {
+              try {
+                const c = document.createElement("canvas");
+                c.width = img.naturalWidth || img.width;
+                c.height = img.naturalHeight || img.height;
+                const cctx = c.getContext("2d");
+                cctx.drawImage(img, 0, 0);
+                resolve(c.toDataURL("image/png"));
+              } catch (err) {
+                reject(err);
+              }
+            };
+            img.onerror = () => reject(new Error(`Failed to load ${src}`));
+            img.src = src;
+          });
+          if (result) return result;
+        } catch (e) {}
+      }
+      return null;
+    }
+
+    // PDF Certificate Generation (SPPS ONLY, without score display)
+    async function buildCertificatePDF(studentName, schoolName) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pageWidth = 297;
+      const pageHeight = 210;
+
+      // Certificate Background
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+      // Double Border (Gold and Navy)
+      doc.setDrawColor(212, 175, 55);
+      doc.setLineWidth(1.8);
+      doc.rect(10, 10, pageWidth - 20, pageHeight - 20);
+
+      doc.setDrawColor(30, 58, 138);
+      doc.setLineWidth(0.6);
+      doc.rect(12.5, 12.5, pageWidth - 25, pageHeight - 25);
+
+      // Decorative Corner Accents
+      const cornerSize = 10;
+      doc.setLineWidth(1.5);
+      doc.setDrawColor(212, 175, 55);
+      doc.line(10, 10 + cornerSize, 10 + cornerSize, 10);
+      doc.line(pageWidth - 10 - cornerSize, 10, pageWidth - 10, 10 + cornerSize);
+      doc.line(10, pageHeight - 10 - cornerSize, 10 + cornerSize, pageHeight - 10);
+      doc.line(pageWidth - 10 - cornerSize, pageHeight - 10, pageWidth - 10, pageHeight - 10 - cornerSize);
+
+      // SPPS Logo (SPPS ONLY - Centered top header)
+      const sppsBase64 = await loadImageBase64(['SPPS.jpg', 'SPPS_2.jpg', 'SPPS.png']);
+      if (sppsBase64) {
+        doc.addImage(sppsBase64, 'JPEG', (pageWidth / 2) - 18, 17, 36, 26);
+      }
+
+      // SPPS Header Title
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(22);
+      doc.setTextColor(30, 58, 138);
+      doc.text('SOUTH PACIFIC PHYSICS SOCIETY (SPPS)', pageWidth / 2, 50, { align: 'center' });
+
+      // Certificate Subtitle
+      doc.setFont('times', 'bold');
+      doc.setFontSize(28);
+      doc.setTextColor(24, 38, 64);
+      doc.text('CERTIFICATE OF PARTICIPATION', pageWidth / 2, 65, { align: 'center' });
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text('THIS IS PROUDLY PRESENTED TO', pageWidth / 2, 78, { align: 'center' });
+
+      // Student Name
+      doc.setFont('times', 'italic');
+      doc.setFontSize(32);
+      doc.setTextColor(0, 75, 145);
+      doc.text(studentName, pageWidth / 2, 95, { align: 'center' });
+
+      // Underline accent
+      doc.setDrawColor(212, 175, 55);
+      doc.setLineWidth(0.8);
+      doc.line(60, 99, pageWidth - 60, 99);
+
+      // School & Participation Statement (Score omitted)
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(13);
+      doc.setTextColor(45, 55, 72);
+      doc.text(`of ${schoolName}`, pageWidth / 2, 109, { align: 'center' });
+
+      doc.setFontSize(12);
+      doc.text('For active participation in the SPPS Physics Quiz Competition.', pageWidth / 2, 119, { align: 'center' });
+
+      // Current Date
+      const now = new Date();
+      const day = String(now.getDate()).padStart(2, '0');
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const year = now.getFullYear();
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10.5);
+      doc.setTextColor(70, 80, 95);
+      doc.text(`Date: ${day}/${month}/${year}`, pageWidth / 2, 135, { align: 'center' });
+
+      // Signature 1: Dr. Amol Kishore
+      const amolSigBase64 = await loadImageBase64(['Amol_1.jpg', 'Amol.jpg', 'Amol_1_2.jpg']);
+      if (amolSigBase64) {
+        doc.addImage(amolSigBase64, 'JPEG', 42, 145, 52, 22);
+      }
+      doc.setDrawColor(71, 85, 105);
+      doc.setLineWidth(0.6);
+      doc.line(30, 170, 105, 170);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(15, 23, 42);
+      doc.text('Dr. Amol Kishore', 67.5, 176, { align: 'center' });
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(71, 85, 105);
+      doc.text('President of SPPS', 67.5, 182, { align: 'center' });
+
+      // Signature 2: Dr. Ajal Kumar
+      const ajalSigBase64 = await loadImageBase64(['Ajal_1.jpg', 'Ajal.jpg', 'Ajal_1_2.jpg']);
+      if (ajalSigBase64) {
+        doc.addImage(ajalSigBase64, 'JPEG', pageWidth - 94, 145, 52, 22);
+      }
+      doc.line(pageWidth - 105, 170, pageWidth - 30, 170);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(15, 23, 42);
+      doc.text('Dr. Ajal Kumar', pageWidth - 67.5, 176, { align: 'center' });
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(71, 85, 105);
+      doc.text('Discipline Coordinator Physics', pageWidth - 67.5, 182, { align: 'center' });
+
+      return doc;
+    }
+
+    // Trigger PDF download
+    async function downloadSPPSCertificate() {
+      const statusEl = document.getElementById("certStatus");
+      const btn = document.getElementById("downloadCertBtn");
+
+      try {
+        btn.disabled = true;
+        statusEl.textContent = "Generating your SPPS Certificate...";
+        const studentName = studentInfo.name || "Student Participant";
+        const schoolName = studentInfo.school || "Participating School";
+
+        const doc = await buildCertificatePDF(studentName, schoolName);
+        const safeName = studentName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        doc.save(`SPPS_Certificate_${safeName}.pdf`);
+
+        statusEl.textContent = "✓ Certificate downloaded successfully!";
+      } catch (err) {
+        console.error("Certificate generation error:", err);
+        statusEl.textContent = "⚠️ Error generating certificate. Please ensure signatures and logo are accessible.";
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // Sanitize user inputs against XSS
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, 
+        tag => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          "'": '&#39;',
+          '"': '&quot;'
+        }[tag] || tag)
+      );
+    }
+  </script>
+</body>
+</html>

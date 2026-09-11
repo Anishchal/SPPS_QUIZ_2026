@@ -729,7 +729,7 @@
       // SPPS Logo (SPPS ONLY - Centered top header)
       const sppsBase64 = await loadImageBase64(['SPPS.jpg', 'SPPS_2.jpg', 'SPPS.png']);
       if (sppsBase64) {
-        doc.addImage(sppsBase64, 'JPEG', (pageWidth / 2) - 18, 135, 50, 35);
+        doc.addImage(sppsBase64, 'JPEG', (pageWidth / 2) - 25, 135, 50, 35);
       }
 
       // SPPS Header Title
@@ -758,7 +758,7 @@
       // Underline accent
       doc.setDrawColor(212, 175, 55);
       doc.setLineWidth(0.8);
-      doc.line(60, 74, pageWidth - 60, 84);
+      doc.line(60, 84, pageWidth - 60, 84);
 
       // School & Participation Statement (Score omitted)
       doc.setFont('helvetica', 'normal');

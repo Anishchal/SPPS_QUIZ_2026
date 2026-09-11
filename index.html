@@ -293,7 +293,7 @@
     <div class="question-title" id="questionText"></div>
 
     <div class="figure-container">
-      <img id="questionImage" src="" alt="Question Figure" />
+      <img id="questionImage" src="" alt="Question Figure" decoding="async" />
     </div>
 
     <div class="options-list" id="optionsContainer"></div>
@@ -563,11 +563,21 @@
     let studentInfo = { name: "", school: "", email: "" };
     let selectedQuestions = [];
     let currentIndex = 0;
+    const preloadedImageCache = [];
 
     // Helper: Pick n random elements from an array
     function getRandomSample(arr, count) {
       const shuffled = [...arr].sort(() => 0.5 - Math.random());
       return shuffled.slice(0, count);
+    }
+
+    // Helper: Preload all images chosen for the quiz into memory
+    function preloadQuizImages(questions) {
+      questions.forEach(q => {
+        const img = new Image();
+        img.src = `Q${q.id}.jpeg`;
+        preloadedImageCache.push(img);
+      });
     }
 
     // Modal Form Submit Event
@@ -591,6 +601,9 @@
 
       selectedQuestions = [...easyPicks, ...medPicks, ...hardPicks];
       currentIndex = 0;
+
+      // Preload the 10 selected question images immediately
+      preloadQuizImages(selectedQuestions);
 
       renderQuestion();
     }

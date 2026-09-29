@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SPPS Quiz Competition</title>
+  <title>South Pacific Physics Quiz (SPPQ)</title>
   <!-- jsPDF Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
@@ -415,7 +415,7 @@
 <body>
 
   <header>
-    <h1>SPPS Quiz Competition</h1>
+    <h1>South Pacific Physics Quiz (SPPQ)</h1>
   </header>
 
   <!-- Modal registration popup -->
@@ -423,7 +423,7 @@
     <div class="modal">
       <h2>Participant Registration</h2>
       <p style="margin-bottom: 16px; color: #64748b; font-size: 0.9rem;">
-        Welcome to the SPPS Quiz Competition. Please register and review the rules below.
+        Welcome to the South Pacific Physics Quiz (SPPQ). Please register and review the rules below.
       </p>
 
       <form id="studentForm">
@@ -458,7 +458,7 @@
 
         <!-- Competition Rules Section -->
         <div class="rules-box">
-          <h3>📋 Quiz Competition Rules & Mark Scheme</h3>
+          <h3>📋 SPPQ Rules & Mark Scheme</h3>
           <ul>
             <li><strong>Total Marks: 50 Marks</strong> across 10 randomized questions:
               <br/>• <strong>Q1 – Q4 (Easy):</strong> 3 marks each (12 marks)
@@ -476,7 +476,7 @@
 
         <div class="agreement-container">
           <input type="checkbox" id="rulesAgree" required />
-          <label for="rulesAgree">I have read and agree to follow all the rules of the SPPS Quiz Competition, including the 30-minute limit.</label>
+          <label for="rulesAgree">I have read and agree to follow all the rules of the South Pacific Physics Quiz (SPPQ), including the 30-minute limit.</label>
         </div>
 
         <button type="submit" class="btn">Agree & Start Quiz</button>
@@ -487,7 +487,7 @@
   <!-- Quiz question screen -->
   <main class="quiz-card" id="quizCard">
     <div class="top-bar">
-      <span class="quiz-title-badge">SPPS Physics Challenge</span>
+      <span class="quiz-title-badge">South Pacific Physics Quiz (SPPQ)</span>
       <div class="timer-badge" id="timerBadge">
         <span>⏱️</span>
         <span id="timeRemaining">30:00</span>
@@ -521,7 +521,7 @@
     <div class="record-status" id="recordStatus">Saving results to spreadsheet...</div>
 
     <div class="cert-actions">
-      <button type="button" class="btn btn-cert" id="downloadCertBtn" onclick="downloadSPPSCertificate()">
+      <button type="button" class="btn btn-cert" id="downloadCertBtn" onclick="downloadSPPQCertificate()">
         🎓 Download Certificate of Participation (PDF)
       </button>
       <button type="button" class="btn btn-email" id="emailCertBtn" onclick="sendCertificateEmail()">
@@ -785,7 +785,7 @@
     let userAnswers = [];
     let currentIndex = 0;
     let totalScore = 0;
-    const TOTAL_QUIZ_MARKS = 50; // Total marks across all 10 questions
+    const TOTAL_QUIZ_MARKS = 50;
     const preloadedImageCache = [];
 
     // 30-Minute Timer Configuration
@@ -795,7 +795,7 @@
     let quizActive = false;
     let quizCompleted = false;
 
-    const SESSION_STORAGE_KEY = "SPPS_QUIZ_STATE_2026";
+    const SESSION_STORAGE_KEY = "SPPQ_QUIZ_STATE_2026";
 
     // Warn student before reloading, closing, or navigating away
     window.addEventListener("beforeunload", function (e) {
@@ -914,23 +914,19 @@
       });
     }
 
-    // Assemble the 10 questions with the designated mark structure
     function startQuiz() {
-      // Q1 - Q4: 4 Easy Questions (3 marks each)
       const easyPicks = getRandomSample(questionBank.easy, 4).map(q => ({
         ...q,
         tier: "Easy",
         marks: 3
       }));
 
-      // Q5 - Q7: 3 Medium Questions (5 marks each)
       const medPicks = getRandomSample(questionBank.medium, 3).map(q => ({
         ...q,
         tier: "Medium",
         marks: 5
       }));
 
-      // Q8 - Q10: 3 Hard Questions (Q8 & Q9 = 7 marks each, Q10 = 9 marks)
       const rawHardPicks = getRandomSample(questionBank.hard, 3);
       const hardPicks = [
         { ...rawHardPicks[0], tier: "Hard", marks: 7 }, // Q8 (7 marks)
@@ -1099,7 +1095,7 @@
       resultsCard.style.display = "block";
 
       document.getElementById("thankYouMsg").innerHTML = `
-        Thank you, <strong>${escapeHTML(studentInfo.name)}</strong> (${escapeHTML(studentInfo.year)}) from <strong>${escapeHTML(studentInfo.school)}</strong>, for participating in the SPPS Quiz Competition!<br/>
+        Thank you, <strong>${escapeHTML(studentInfo.name)}</strong> (${escapeHTML(studentInfo.year)}) from <strong>${escapeHTML(studentInfo.school)}</strong>, for participating in the South Pacific Physics Quiz (SPPQ)!<br/>
         Your responses have been recorded. You can download your Certificate of Participation or have it delivered straight to your email.
       `;
 
@@ -1116,7 +1112,7 @@
         year: studentInfo.year,
         email: studentInfo.email,
         score: totalScore,
-        maxScore: TOTAL_QUIZ_MARKS, // Out of 50
+        maxScore: TOTAL_QUIZ_MARKS,
         answers: userAnswers
       };
 
@@ -1270,7 +1266,7 @@
       doc.text(`of ${schoolName}`, pageWidth / 2, 94, { align: 'center' });
 
       doc.setFontSize(12);
-      doc.text('For active participation in the SPPS Physics Quiz Competition.', pageWidth / 2, 104, { align: 'center' });
+      doc.text('For active participation in the South Pacific Physics Quiz (SPPQ).', pageWidth / 2, 104, { align: 'center' });
 
       const now = new Date();
       const day = String(now.getDate()).padStart(2, '0');
@@ -1318,20 +1314,20 @@
       return doc;
     }
 
-    async function downloadSPPSCertificate() {
+    async function downloadSPPQCertificate() {
       const statusEl = document.getElementById("certStatus");
       const btn = document.getElementById("downloadCertBtn");
 
       try {
         btn.disabled = true;
         statusEl.style.color = "#38bdf8";
-        statusEl.textContent = "Generating your SPPS Certificate...";
+        statusEl.textContent = "Generating your SPPQ Certificate...";
         const studentName = studentInfo.name || "Student Participant";
         const schoolName = studentInfo.school || "Participating School";
 
         const doc = await buildCertificatePDF(studentName, schoolName);
         const safeName = studentName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        doc.save(`SPPS_Certificate_${safeName}.pdf`);
+        doc.save(`SPPQ_Certificate_${safeName}.pdf`);
 
         statusEl.style.color = "#34d399";
         statusEl.textContent = "✓ Certificate downloaded successfully!";

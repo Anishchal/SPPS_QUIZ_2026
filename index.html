@@ -34,11 +34,41 @@
       flex-direction: column;
       align-items: center;
       padding: 20px;
+      position: relative;
+    }
+
+    /* Full-page fixed background watermark behind quiz elements */
+    .page-watermark {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0;
+      transition: opacity 0.4s ease-in-out;
+    }
+
+    .page-watermark.active {
+      opacity: 0.12; /* Subtle transparency behind the window */
+    }
+
+    .page-watermark img {
+      max-width: 620px;
+      width: 75vw;
+      height: auto;
+      object-fit: contain;
     }
 
     header {
       margin-bottom: 20px;
       text-align: center;
+      position: relative;
+      z-index: 10;
     }
 
     header h1 {
@@ -51,14 +81,16 @@
     .quiz-card {
       background: var(--card-bg);
       border-radius: 12px;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12);
       width: 100%;
       max-width: 700px;
       padding: 30px;
       display: none;
+      position: relative;
+      z-index: 10;
     }
 
-    /* Modal / Pop-up Window */
+    /* Modal / Pop-up Window - Clean white registration */
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -74,7 +106,7 @@
     }
 
     .modal {
-      background: #fff;
+      background: #ffffff;
       padding: 28px;
       border-radius: 12px;
       max-width: 560px;
@@ -109,7 +141,7 @@
       border-radius: 6px;
       font-size: 0.95rem;
       outline: none;
-      background: #fff;
+      background: #ffffff;
       transition: border 0.2s ease;
     }
 
@@ -228,6 +260,7 @@
       border-radius: 6px;
       border: 1px solid var(--border);
       object-fit: contain;
+      background: #ffffff;
     }
 
     .options-list {
@@ -245,7 +278,7 @@
       border-radius: 8px;
       cursor: pointer;
       transition: all 0.2s ease;
-      background: #fff;
+      background: #ffffff;
     }
 
     .option-item:hover {
@@ -367,11 +400,16 @@
 </head>
 <body>
 
+  <!-- Large Transparent SPPS Logo directly behind the quiz screen -->
+  <div class="page-watermark" id="pageWatermark">
+    <img src="SPPS.png" alt="SPPS Logo Background" onerror="this.onerror=null; this.src='SPPS.jpg';" />
+  </div>
+
   <header>
     <h1>SPPS Quiz Competition</h1>
   </header>
 
-  <!-- Modal registration popup with Rules -->
+  <!-- Modal registration popup (Clean White Background) -->
   <div class="modal-overlay" id="registrationModal">
     <div class="modal">
       <h2>Participant Registration</h2>
@@ -794,13 +832,14 @@
       quizActive = true;
       quizCompleted = false;
 
-      // Hide modal, show quiz card
+      // Activate the large watermark behind the window
+      document.getElementById("pageWatermark").classList.add("active");
+
       document.getElementById("registrationModal").style.display = "none";
       document.getElementById("quizCard").style.display = "block";
 
       preloadQuizImages(selectedQuestions);
 
-      // Check if time expired while reloading
       const remainingSeconds = Math.max(0, Math.round((endTimeTimestamp - Date.now()) / 1000));
       if (remainingSeconds <= 0) {
         autoSubmitOnTimeExpiry();
@@ -836,13 +875,16 @@
       // Immediately log participant registration to spreadsheet
       submitInitialRegistration();
 
+      // Show the background watermark behind the quiz window
+      document.getElementById("pageWatermark").classList.add("active");
+
       document.getElementById("registrationModal").style.display = "none";
       document.getElementById("quizCard").style.display = "block";
 
       startQuiz();
     });
 
-    // 1. Sends registration details immediately upon start
+    // Sends registration details immediately upon start
     function submitInitialRegistration() {
       const payload = {
         action: "recordRegistration",
@@ -1001,7 +1043,7 @@
       });
 
       currentIndex++;
-      persistQuizState(); // Persist progress after each answer
+      persistQuizState();
 
       if (currentIndex < selectedQuestions.length) {
         renderQuestion();
@@ -1015,7 +1057,7 @@
       quizActive = false;
       quizCompleted = true;
       clearInterval(timerInterval);
-      sessionStorage.removeItem(SESSION_STORAGE_KEY); // Clean up session
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
 
       document.getElementById("quizCard").style.display = "none";
       const resultsCard = document.getElementById("resultsCard");
@@ -1029,7 +1071,6 @@
       submitQuizResults();
     }
 
-    // 2. Sends final score, answers, and completion summary upon quiz finish
     function submitQuizResults() {
       const recordStatus = document.getElementById("recordStatus");
 

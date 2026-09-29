@@ -37,9 +37,6 @@
       transition: background 0.5s ease, color 0.4s ease;
     }
 
-    /* -------------------------------------------------------------
-       THEMED STATE: Activated once the quiz begins (No Logo)
-       ------------------------------------------------------------- */
     body.quiz-themed {
       background: linear-gradient(135deg, #071126 0%, #0d1e44 50%, #061024 100%);
       color: #f1f5f9;
@@ -64,9 +61,7 @@
       text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
     }
 
-    /* -------------------------------------------------------------
-       Registration Modal
-       ------------------------------------------------------------- */
+    /* Registration Modal */
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -175,9 +170,7 @@
       accent-color: #2563eb;
     }
 
-    /* -------------------------------------------------------------
-       Quiz & Results Cards
-       ------------------------------------------------------------- */
+    /* Quiz & Results Cards */
     .quiz-card {
       background: rgba(14, 27, 58, 0.92);
       border: 1.5px solid rgba(212, 175, 55, 0.45);
@@ -244,6 +237,11 @@
       font-weight: 600;
       color: #94a3b8;
       font-size: 0.9rem;
+    }
+
+    .marks-tag {
+      color: var(--gold);
+      font-weight: 700;
     }
 
     .question-title {
@@ -320,9 +318,7 @@
       box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
     }
 
-    /* -------------------------------------------------------------
-       Results Screen
-       ------------------------------------------------------------- */
+    /* Results Screen */
     .results-screen {
       text-align: center;
     }
@@ -422,7 +418,7 @@
     <h1>SPPS Quiz Competition</h1>
   </header>
 
-  <!-- Modal registration popup (Clean White Background) -->
+  <!-- Modal registration popup -->
   <div class="modal-overlay" id="registrationModal">
     <div class="modal">
       <h2>Participant Registration</h2>
@@ -462,11 +458,17 @@
 
         <!-- Competition Rules Section -->
         <div class="rules-box">
-          <h3>📋 Quiz Competition Rules & Guidelines</h3>
+          <h3>📋 Quiz Competition Rules & Mark Scheme</h3>
           <ul>
+            <li><strong>Total Marks: 50 Marks</strong> across 10 randomized questions:
+              <br/>• <strong>Q1 – Q4 (Easy):</strong> 3 marks each (12 marks)
+              <br/>• <strong>Q5 – Q7 (Medium):</strong> 5 marks each (15 marks)
+              <br/>• <strong>Q8 & Q9 (Hard):</strong> 7 marks each (14 marks)
+              <br/>• <strong>Q10 (Hard):</strong> 9 marks (9 marks)
+            </li>
             <li><strong>Time Limit:</strong> You have strictly <strong>30 minutes</strong> to complete the quiz once started.</li>
             <li><strong>Do Not Reload:</strong> Avoid refreshing or closing the page. Your progress will be tracked, but reloading risks accidental submission if time runs out.</li>
-            <li><strong>Auto-Submission:</strong> If the 30-minute timer runs out, the quiz will <strong>automatically submit</strong> with any unanswered questions recorded as blank.</li>
+            <li><strong>Auto-Submission:</strong> If the 30-minute timer runs out, the quiz will <strong>automatically submit</strong> with any unanswered questions recorded as blank (0 marks).</li>
             <li><strong>Single Attempt:</strong> Once you move past a question, you cannot return to edit your choice.</li>
             <li><strong>Certificate:</strong> Upon quiz completion, your score is logged and your Certificate of Participation will be generated.</li>
           </ul>
@@ -783,6 +785,7 @@
     let userAnswers = [];
     let currentIndex = 0;
     let totalScore = 0;
+    const TOTAL_QUIZ_MARKS = 50; // Total marks across all 10 questions
     const preloadedImageCache = [];
 
     // 30-Minute Timer Configuration
@@ -911,10 +914,29 @@
       });
     }
 
+    // Assemble the 10 questions with the designated mark structure
     function startQuiz() {
-      const easyPicks = getRandomSample(questionBank.easy, 4).map(q => ({ ...q, tier: "Easy" }));
-      const medPicks = getRandomSample(questionBank.medium, 3).map(q => ({ ...q, tier: "Medium" }));
-      const hardPicks = getRandomSample(questionBank.hard, 3).map(q => ({ ...q, tier: "Hard" }));
+      // Q1 - Q4: 4 Easy Questions (3 marks each)
+      const easyPicks = getRandomSample(questionBank.easy, 4).map(q => ({
+        ...q,
+        tier: "Easy",
+        marks: 3
+      }));
+
+      // Q5 - Q7: 3 Medium Questions (5 marks each)
+      const medPicks = getRandomSample(questionBank.medium, 3).map(q => ({
+        ...q,
+        tier: "Medium",
+        marks: 5
+      }));
+
+      // Q8 - Q10: 3 Hard Questions (Q8 & Q9 = 7 marks each, Q10 = 9 marks)
+      const rawHardPicks = getRandomSample(questionBank.hard, 3);
+      const hardPicks = [
+        { ...rawHardPicks[0], tier: "Hard", marks: 7 }, // Q8 (7 marks)
+        { ...rawHardPicks[1], tier: "Hard", marks: 7 }, // Q9 (7 marks)
+        { ...rawHardPicks[2], tier: "Hard", marks: 9 }  // Q10 (9 marks)
+      ];
 
       selectedQuestions = [...easyPicks, ...medPicks, ...hardPicks];
       userAnswers = [];
@@ -964,13 +986,16 @@
       if (currentSelected && currentIndex < selectedQuestions.length) {
         const curQ = selectedQuestions[currentIndex];
         const isCorr = currentSelected.value.toUpperCase() === curQ.answer.toUpperCase();
-        if (isCorr) totalScore++;
+        if (isCorr) totalScore += curQ.marks;
         userAnswers.push({
           questionId: curQ.id,
+          questionNumber: currentIndex + 1,
           questionText: curQ.text,
           userSelected: currentSelected.value,
           correctAnswer: curQ.answer,
-          isCorrect: isCorr
+          isCorrect: isCorr,
+          marksAwarded: isCorr ? curQ.marks : 0,
+          marksPossible: curQ.marks
         });
         currentIndex++;
       }
@@ -979,10 +1004,13 @@
         const blankQ = selectedQuestions[i];
         userAnswers.push({
           questionId: blankQ.id,
+          questionNumber: i + 1,
           questionText: blankQ.text,
           userSelected: "Unanswered (Time Expired)",
           correctAnswer: blankQ.answer,
-          isCorrect: false
+          isCorrect: false,
+          marksAwarded: 0,
+          marksPossible: blankQ.marks
         });
       }
 
@@ -994,7 +1022,7 @@
       const currentQ = selectedQuestions[currentIndex];
 
       document.getElementById("questionProgress").textContent = `Question ${currentIndex + 1} of ${selectedQuestions.length}`;
-      document.getElementById("questionTier").textContent = `Difficulty: ${currentQ.tier} (${currentQ.topic})`;
+      document.getElementById("questionTier").innerHTML = `Difficulty: ${currentQ.tier} (${currentQ.topic}) • <span class="marks-tag">${currentQ.marks} Marks</span>`;
       document.getElementById("questionText").textContent = currentQ.text;
 
       const imgElem = document.getElementById("questionImage");
@@ -1036,14 +1064,17 @@
 
       const currentQ = selectedQuestions[currentIndex];
       const isCorrect = selected.value.toUpperCase() === currentQ.answer.toUpperCase();
-      if (isCorrect) totalScore++;
+      if (isCorrect) totalScore += currentQ.marks;
 
       userAnswers.push({
         questionId: currentQ.id,
+        questionNumber: currentIndex + 1,
         questionText: currentQ.text,
         userSelected: selected.value,
         correctAnswer: currentQ.answer,
-        isCorrect: isCorrect
+        isCorrect: isCorrect,
+        marksAwarded: isCorrect ? currentQ.marks : 0,
+        marksPossible: currentQ.marks
       });
 
       currentIndex++;
@@ -1085,7 +1116,7 @@
         year: studentInfo.year,
         email: studentInfo.email,
         score: totalScore,
-        maxScore: selectedQuestions.length,
+        maxScore: TOTAL_QUIZ_MARKS, // Out of 50
         answers: userAnswers
       };
 

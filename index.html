@@ -16,6 +16,7 @@
       --text: #1f2937;
       --border: #e2e8f0;
       --gold: #d4af37;
+      --danger: #dc2626;
     }
 
     * {
@@ -164,7 +165,42 @@
       accent-color: var(--accent);
     }
 
-    /* Question UI */
+    /* Top Stats Bar with Timer */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .timer-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: var(--primary);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: 0.5px;
+    }
+
+    .timer-warning {
+      background: #fef2f2 !important;
+      border-color: #fecaca !important;
+      color: var(--danger) !important;
+      animation: pulse 1s infinite alternate;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      100% { opacity: 0.85; transform: scale(1.03); }
+    }
+
     .progress-bar {
       display: flex;
       justify-content: space-between;
@@ -172,8 +208,6 @@
       font-weight: 600;
       color: #64748b;
       font-size: 0.9rem;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 10px;
     }
 
     .question-title {
@@ -265,6 +299,18 @@
       justify-content: center;
       font-size: 2.5rem;
       margin: 20px auto;
+    }
+
+    .time-expired-alert {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      margin-bottom: 15px;
+      font-weight: 600;
+      display: none;
     }
 
     .thank-you-msg {
@@ -367,17 +413,17 @@
         <div class="rules-box">
           <h3>📋 Quiz Competition Rules & Guidelines</h3>
           <ul>
-            <li><strong>Format:</strong> You will receive a total of <strong>10 randomized questions</strong> (4 Easy, 3 Medium, 3 Hard).</li>
-            <li><strong>Single Attempt:</strong> Each question allows one choice. Once you click <em>Next Question</em>, you cannot go back.</li>
-            <li><strong>Diagrams:</strong> Pay careful attention to the figure associated with each question before picking your option.</li>
-            <li><strong>Academic Integrity:</strong> All questions must be completed individually without unauthorized external assistance or AI tools.</li>
-            <li><strong>Certificate:</strong> Upon quiz completion, your score will be recorded, and a Certificate of Participation will be instantly available for download and email.</li>
+            <li><strong>Time Limit:</strong> You have strictly <strong>30 minutes</strong> to complete the quiz once you press "Agree & Start Quiz".</li>
+            <li><strong>Auto-Submission:</strong> If the 30-minute timer runs out, the quiz will <strong>automatically submit</strong> with any unanswered questions recorded as blank.</li>
+            <li><strong>Questions:</strong> You will receive a total of 10 randomized questions (4 Easy, 3 Medium, 3 Hard).</li>
+            <li><strong>Single Attempt:</strong> Once you move past a question, you cannot return to edit your choice.</li>
+            <li><strong>Certificate:</strong> Upon quiz completion or automatic submission, your score is logged and your Certificate of Participation will be generated.</li>
           </ul>
         </div>
 
         <div class="agreement-container">
           <input type="checkbox" id="rulesAgree" required />
-          <label for="rulesAgree">I have read and agree to follow all the rules of the SPPS Quiz Competition.</label>
+          <label for="rulesAgree">I have read and agree to follow all the rules of the SPPS Quiz Competition, including the 30-minute limit.</label>
         </div>
 
         <button type="submit" class="btn">Agree & Start Quiz</button>
@@ -387,6 +433,14 @@
 
   <!-- Quiz question screen -->
   <main class="quiz-card" id="quizCard">
+    <div class="top-bar">
+      <span style="font-weight: 700; color: var(--primary);">SPPS Physics Challenge</span>
+      <div class="timer-badge" id="timerBadge">
+        <span>⏱️</span>
+        <span id="timeRemaining">30:00</span>
+      </div>
+    </div>
+
     <div class="progress-bar">
       <span id="questionProgress">Question 1 of 10</span>
       <span id="questionTier">Difficulty: Easy</span>
@@ -406,6 +460,9 @@
   <!-- Results screen -->
   <div class="quiz-card results-screen" id="resultsCard">
     <div class="completion-badge">✓</div>
+    <div class="time-expired-alert" id="timeExpiredAlert">
+      ⚠️ Time has expired! Your quiz was automatically submitted with any remaining questions left blank.
+    </div>
     <h2>Quiz Completed!</h2>
     <div class="thank-you-msg" id="thankYouMsg"></div>
     <div class="record-status" id="recordStatus">Saving results to spreadsheet...</div>
@@ -677,6 +734,12 @@
     let totalScore = 0;
     const preloadedImageCache = [];
 
+    // 30-Minute Timer Configuration
+    const TOTAL_QUIZ_TIME_SECONDS = 30 * 60; // 30 minutes = 1800 seconds
+    let timeRemaining = TOTAL_QUIZ_TIME_SECONDS;
+    let timerInterval = null;
+    let quizCompleted = false;
+
     // Helper: Pick n random elements from an array
     function getRandomSample(arr, count) {
       const shuffled = [...arr].sort(() => 0.5 - Math.random());
@@ -706,7 +769,7 @@
       startQuiz();
     });
 
-    // Initialize Quiz: Pick 4 easy, 3 medium, 3 hard
+    // Initialize Quiz: Pick 4 easy, 3 medium, 3 hard & start timer
     function startQuiz() {
       const easyPicks = getRandomSample(questionBank.easy, 4).map(q => ({ ...q, tier: "Easy" }));
       const medPicks = getRandomSample(questionBank.medium, 3).map(q => ({ ...q, tier: "Medium" }));
@@ -716,9 +779,77 @@
       userAnswers = [];
       currentIndex = 0;
       totalScore = 0;
+      quizCompleted = false;
 
       preloadQuizImages(selectedQuestions);
+      startCountdownTimer();
       renderQuestion();
+    }
+
+    // Start 30-minute Timer
+    function startCountdownTimer() {
+      timeRemaining = TOTAL_QUIZ_TIME_SECONDS;
+      updateTimerDisplay();
+
+      timerInterval = setInterval(() => {
+        timeRemaining--;
+        updateTimerDisplay();
+
+        // Warning state for last 5 minutes
+        if (timeRemaining <= 300) {
+          document.getElementById("timerBadge").classList.add("timer-warning");
+        }
+
+        // Time Expired
+        if (timeRemaining <= 0) {
+          clearInterval(timerInterval);
+          autoSubmitOnTimeExpiry();
+        }
+      }, 1000);
+    }
+
+    // Format & Render Timer
+    function updateTimerDisplay() {
+      const minutes = Math.floor(timeRemaining / 60);
+      const seconds = timeRemaining % 60;
+      document.getElementById("timeRemaining").textContent = 
+        `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    // Triggered when 30 minutes expire
+    function autoSubmitOnTimeExpiry() {
+      if (quizCompleted) return;
+
+      // Check if current question has a selection before time ran out
+      const currentSelected = document.querySelector('input[name="currentOption"]:checked');
+      if (currentSelected && currentIndex < selectedQuestions.length) {
+        const curQ = selectedQuestions[currentIndex];
+        const isCorr = currentSelected.value.toUpperCase() === curQ.answer.toUpperCase();
+        if (isCorr) totalScore++;
+        userAnswers.push({
+          questionId: curQ.id,
+          questionText: curQ.text,
+          userSelected: currentSelected.value,
+          correctAnswer: curQ.answer,
+          isCorrect: isCorr
+        });
+        currentIndex++;
+      }
+
+      // Auto-fill all remaining questions as unanswered blanks
+      for (let i = currentIndex; i < selectedQuestions.length; i++) {
+        const blankQ = selectedQuestions[i];
+        userAnswers.push({
+          questionId: blankQ.id,
+          questionText: blankQ.text,
+          userSelected: "Unanswered (Time Expired)",
+          correctAnswer: blankQ.answer,
+          isCorrect: false
+        });
+      }
+
+      document.getElementById("timeExpiredAlert").style.display = "block";
+      showResults();
     }
 
     // Display Current Question
@@ -783,18 +914,23 @@
       if (currentIndex < selectedQuestions.length) {
         renderQuestion();
       } else {
+        clearInterval(timerInterval); // Stop timer on manual finish
         showResults();
       }
     });
 
     // Display Results Screen and automatically persist data to sheet
     function showResults() {
+      quizCompleted = true;
+      clearInterval(timerInterval);
+
       document.getElementById("quizCard").style.display = "none";
       const resultsCard = document.getElementById("resultsCard");
       resultsCard.style.display = "block";
 
       document.getElementById("thankYouMsg").innerHTML = `
         Thank you, <strong>${escapeHTML(studentInfo.name)}</strong> (${escapeHTML(studentInfo.year)}) from <strong>${escapeHTML(studentInfo.school)}</strong>, for participating in the SPPS Quiz Competition!<br/>
+        You scored <strong>${totalScore} / ${selectedQuestions.length}</strong>.<br/>
         Your responses have been recorded. You can download your Certificate of Participation or have it delivered straight to your email.
       `;
 

@@ -69,46 +69,99 @@
       justify-content: center;
       align-items: center;
       z-index: 1000;
+      padding: 16px;
     }
 
     .modal {
       background: #fff;
-      padding: 30px;
+      padding: 28px;
       border-radius: 12px;
-      max-width: 480px;
-      width: 90%;
+      max-width: 560px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
     }
 
     .modal h2 {
       color: var(--primary);
-      margin-bottom: 15px;
+      margin-bottom: 6px;
       font-size: 1.5rem;
     }
 
     .form-group {
-      margin-bottom: 18px;
+      margin-bottom: 14px;
     }
 
     .form-group label {
       display: block;
-      margin-bottom: 6px;
+      margin-bottom: 5px;
       font-weight: 600;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
     }
 
-    .form-group input {
+    .form-group input,
+    .form-group select {
       width: 100%;
       padding: 10px 14px;
       border: 1px solid var(--border);
       border-radius: 6px;
-      font-size: 1rem;
+      font-size: 0.95rem;
       outline: none;
+      background: #fff;
       transition: border 0.2s ease;
     }
 
-    .form-group input:focus {
+    .form-group input:focus,
+    .form-group select:focus {
       border-color: var(--accent);
+    }
+
+    /* Rules Card inside Modal */
+    .rules-box {
+      background: #f1f5f9;
+      border-left: 4px solid var(--accent);
+      padding: 14px 16px;
+      border-radius: 6px;
+      margin: 18px 0;
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+
+    .rules-box h3 {
+      color: var(--primary);
+      font-size: 0.95rem;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .rules-box ul {
+      padding-left: 20px;
+      color: #334155;
+    }
+
+    .rules-box li {
+      margin-bottom: 5px;
+    }
+
+    .rules-box li:last-child {
+      margin-bottom: 0;
+    }
+
+    .agreement-container {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 18px;
+      font-size: 0.85rem;
+      color: #475569;
+    }
+
+    .agreement-container input[type="checkbox"] {
+      margin-top: 3px;
+      accent-color: var(--accent);
     }
 
     /* Question UI */
@@ -272,27 +325,62 @@
     <h1>SPPS Quiz Competition</h1>
   </header>
 
-  <!-- Modal registration popup -->
+  <!-- Modal registration popup with Rules -->
   <div class="modal-overlay" id="registrationModal">
     <div class="modal">
       <h2>Participant Registration</h2>
-      <p style="margin-bottom: 20px; color: #64748b; font-size: 0.9rem;">
-        Please enter your details before starting the competition.
+      <p style="margin-bottom: 16px; color: #64748b; font-size: 0.9rem;">
+        Welcome to the SPPS Quiz Competition. Please register and review the rules below.
       </p>
+
       <form id="studentForm">
         <div class="form-group">
-          <label for="studentName">Full Name</label>
+          <label for="studentName">Full Name *</label>
           <input type="text" id="studentName" required placeholder="e.g. Jane Doe" />
         </div>
+
         <div class="form-group">
-          <label for="schoolName">School Name</label>
+          <label for="schoolName">School Name *</label>
           <input type="text" id="schoolName" required placeholder="e.g. Saint Peter High School" />
         </div>
+
         <div class="form-group">
-          <label for="studentEmail">Email Address</label>
+          <label for="studentYear">Year / Class Level *</label>
+          <select id="studentYear" required>
+            <option value="" disabled selected>-- Select your Year/Class --</option>
+            <option value="Year 9">Year 9 (Form 3)</option>
+            <option value="Year 10">Year 10 (Form 4)</option>
+            <option value="Year 11">Year 11 (Form 5)</option>
+            <option value="Year 12">Year 12 (Form 6)</option>
+            <option value="Year 13">Year 13 (Form 7)</option>
+            <option value="Undergraduate">Undergraduate / College</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="studentEmail">Email Address *</label>
           <input type="email" id="studentEmail" required placeholder="e.g. student@example.com" />
         </div>
-        <button type="submit" class="btn">Start Quiz</button>
+
+        <!-- Competition Rules Section -->
+        <div class="rules-box">
+          <h3>📋 Quiz Competition Rules & Guidelines</h3>
+          <ul>
+            <li><strong>Format:</strong> You will receive a total of <strong>10 randomized questions</strong> (4 Easy, 3 Medium, 3 Hard).</li>
+            <li><strong>Single Attempt:</strong> Each question allows one choice. Once you click <em>Next Question</em>, you cannot go back.</li>
+            <li><strong>Diagrams:</strong> Pay careful attention to the figure associated with each question before picking your option.</li>
+            <li><strong>Academic Integrity:</strong> All questions must be completed individually without unauthorized external assistance or AI tools.</li>
+            <li><strong>Certificate:</strong> Upon quiz completion, your score will be recorded, and a Certificate of Participation will be instantly available for download and email.</li>
+          </ul>
+        </div>
+
+        <div class="agreement-container">
+          <input type="checkbox" id="rulesAgree" required />
+          <label for="rulesAgree">I have read and agree to follow all the rules of the SPPS Quiz Competition.</label>
+        </div>
+
+        <button type="submit" class="btn">Agree & Start Quiz</button>
       </form>
     </div>
   </div>
@@ -582,9 +670,9 @@
     };
 
     // User & Quiz State
-    let studentInfo = { name: "", school: "", email: "" };
+    let studentInfo = { name: "", school: "", year: "", email: "" };
     let selectedQuestions = [];
-    let userAnswers = []; // Store question results & selected answers
+    let userAnswers = [];
     let currentIndex = 0;
     let totalScore = 0;
     const preloadedImageCache = [];
@@ -609,6 +697,7 @@
       e.preventDefault();
       studentInfo.name = document.getElementById("studentName").value.trim();
       studentInfo.school = document.getElementById("schoolName").value.trim();
+      studentInfo.year = document.getElementById("studentYear").value;
       studentInfo.email = document.getElementById("studentEmail").value.trim();
 
       document.getElementById("registrationModal").style.display = "none";
@@ -705,7 +794,7 @@
       resultsCard.style.display = "block";
 
       document.getElementById("thankYouMsg").innerHTML = `
-        Thank you, <strong>${escapeHTML(studentInfo.name)}</strong> from <strong>${escapeHTML(studentInfo.school)}</strong>, for participating in the SPPS Quiz Competition!<br/>
+        Thank you, <strong>${escapeHTML(studentInfo.name)}</strong> (${escapeHTML(studentInfo.year)}) from <strong>${escapeHTML(studentInfo.school)}</strong>, for participating in the SPPS Quiz Competition!<br/>
         Your responses have been recorded. You can download your Certificate of Participation or have it delivered straight to your email.
       `;
 
@@ -720,6 +809,7 @@
         action: "recordQuizSubmission",
         name: studentInfo.name,
         school: studentInfo.school,
+        year: studentInfo.year,
         email: studentInfo.email,
         score: totalScore,
         maxScore: selectedQuestions.length,
@@ -765,7 +855,8 @@
           action: "sendEmailCertificate",
           name: studentInfo.name,
           email: studentInfo.email,
-          school: studentInfo.school
+          school: studentInfo.school,
+          year: studentInfo.year
         })
       })
       .then(() => {

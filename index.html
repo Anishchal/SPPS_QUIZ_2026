@@ -417,7 +417,7 @@
             <li><strong>Auto-Submission:</strong> If the 30-minute timer runs out, the quiz will <strong>automatically submit</strong> with any unanswered questions recorded as blank.</li>
             <li><strong>Questions:</strong> You will receive a total of 10 randomized questions (4 Easy, 3 Medium, 3 Hard).</li>
             <li><strong>Single Attempt:</strong> Once you move past a question, you cannot return to edit your choice.</li>
-            <li><strong>Certificate:</strong> Upon quiz completion or automatic submission, your score is logged and your Certificate of Participation will be generated.</li>
+            <li><strong>Certificate:</strong> Upon quiz completion or automatic submission, your responses are recorded and your Certificate of Participation will be generated.</li>
           </ul>
         </div>
 
@@ -928,9 +928,9 @@
       const resultsCard = document.getElementById("resultsCard");
       resultsCard.style.display = "block";
 
+      // Score line removed from student view
       document.getElementById("thankYouMsg").innerHTML = `
         Thank you, <strong>${escapeHTML(studentInfo.name)}</strong> (${escapeHTML(studentInfo.year)}) from <strong>${escapeHTML(studentInfo.school)}</strong>, for participating in the SPPS Quiz Competition!<br/>
-        You scored <strong>${totalScore} / ${selectedQuestions.length}</strong>.<br/>
         Your responses have been recorded. You can download your Certificate of Participation or have it delivered straight to your email.
       `;
 

@@ -413,11 +413,11 @@
         <div class="rules-box">
           <h3>📋 Quiz Competition Rules & Guidelines</h3>
           <ul>
-            <li><strong>Time Limit:</strong> You have strictly <strong>30 minutes</strong> to complete the quiz once you press "Agree & Start Quiz".</li>
+            <li><strong>Time Limit:</strong> You have strictly <strong>30 minutes</strong> to complete the quiz once started.</li>
+            <li><strong>Do Not Reload:</strong> Avoid refreshing or closing the page. Your progress will be tracked, but reloading risks accidental submission if time runs out.</li>
             <li><strong>Auto-Submission:</strong> If the 30-minute timer runs out, the quiz will <strong>automatically submit</strong> with any unanswered questions recorded as blank.</li>
-            <li><strong>Questions:</strong> You will receive a total of 10 randomized questions (4 Easy, 3 Medium, 3 Hard).</li>
             <li><strong>Single Attempt:</strong> Once you move past a question, you cannot return to edit your choice.</li>
-            <li><strong>Certificate:</strong> Upon quiz completion or automatic submission, your responses are recorded and your Certificate of Participation will be generated.</li>
+            <li><strong>Certificate:</strong> Upon quiz completion, your score is logged and your Certificate of Participation will be generated.</li>
           </ul>
         </div>
 
@@ -474,7 +474,7 @@
       <button type="button" class="btn btn-email" id="emailCertBtn" onclick="sendCertificateEmail()">
         ✉️ Email Certificate of Participation
       </button>
-      <button type="button" class="btn btn-secondary" onclick="location.reload()">
+      <button type="button" class="btn btn-secondary" onclick="restartQuizSession()">
         Retake Quiz
       </button>
     </div>
@@ -735,10 +735,80 @@
     const preloadedImageCache = [];
 
     // 30-Minute Timer Configuration
-    const TOTAL_QUIZ_TIME_SECONDS = 30 * 60; // 1800 seconds
-    let timeRemaining = TOTAL_QUIZ_TIME_SECONDS;
+    const TOTAL_QUIZ_TIME_SECONDS = 30 * 60;
+    let endTimeTimestamp = 0;
     let timerInterval = null;
+    let quizActive = false;
     let quizCompleted = false;
+
+    const SESSION_STORAGE_KEY = "SPPS_QUIZ_STATE_2026";
+
+    // Warn student before reloading, closing, or navigating away
+    window.addEventListener("beforeunload", function (e) {
+      if (quizActive && !quizCompleted) {
+        e.preventDefault();
+        e.returnValue = "A quiz is currently in progress. If you reload, you may lose time or current responses!";
+        return e.returnValue;
+      }
+    });
+
+    // Check on page load if an active quiz session already exists
+    window.addEventListener("DOMContentLoaded", function () {
+      const savedState = sessionStorage.getItem(SESSION_STORAGE_KEY);
+      if (savedState) {
+        try {
+          const parsed = JSON.parse(savedState);
+          if (parsed && parsed.quizActive && !parsed.quizCompleted) {
+            restoreQuizSession(parsed);
+          }
+        } catch (e) {
+          sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        }
+      }
+    });
+
+    // Save active progress to sessionStorage
+    function persistQuizState() {
+      if (!quizActive || quizCompleted) return;
+      const state = {
+        studentInfo,
+        selectedQuestions,
+        userAnswers,
+        currentIndex,
+        totalScore,
+        endTimeTimestamp,
+        quizActive: true,
+        quizCompleted: false
+      };
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(state));
+    }
+
+    // Restore quiz after accidental reload
+    function restoreQuizSession(state) {
+      studentInfo = state.studentInfo;
+      selectedQuestions = state.selectedQuestions;
+      userAnswers = state.userAnswers || [];
+      currentIndex = state.currentIndex || 0;
+      totalScore = state.totalScore || 0;
+      endTimeTimestamp = state.endTimeTimestamp;
+      quizActive = true;
+      quizCompleted = false;
+
+      // Hide modal, show quiz card
+      document.getElementById("registrationModal").style.display = "none";
+      document.getElementById("quizCard").style.display = "block";
+
+      preloadQuizImages(selectedQuestions);
+
+      // Check if time expired while reloading
+      const remainingSeconds = Math.max(0, Math.round((endTimeTimestamp - Date.now()) / 1000));
+      if (remainingSeconds <= 0) {
+        autoSubmitOnTimeExpiry();
+      } else {
+        startCountdownTimerFromTimestamp(endTimeTimestamp);
+        renderQuestion();
+      }
+    }
 
     // Helper: Pick n random elements from an array
     function getRandomSample(arr, count) {
@@ -802,38 +872,43 @@
       userAnswers = [];
       currentIndex = 0;
       totalScore = 0;
+      quizActive = true;
       quizCompleted = false;
 
+      // Set fixed deadline timestamp
+      endTimeTimestamp = Date.now() + (TOTAL_QUIZ_TIME_SECONDS * 1000);
+
+      persistQuizState();
       preloadQuizImages(selectedQuestions);
-      startCountdownTimer();
+      startCountdownTimerFromTimestamp(endTimeTimestamp);
       renderQuestion();
     }
 
-    // Start 30-minute Timer
-    function startCountdownTimer() {
-      timeRemaining = TOTAL_QUIZ_TIME_SECONDS;
-      updateTimerDisplay();
+    // Countdown Timer based on wall-clock timestamp (survives reloads accurately)
+    function startCountdownTimerFromTimestamp(targetEnd) {
+      if (timerInterval) clearInterval(timerInterval);
 
-      timerInterval = setInterval(() => {
-        timeRemaining--;
-        updateTimerDisplay();
+      function updateClock() {
+        const remainingSeconds = Math.max(0, Math.round((targetEnd - Date.now()) / 1000));
+        const minutes = Math.floor(remainingSeconds / 60);
+        const seconds = remainingSeconds % 60;
+        document.getElementById("timeRemaining").textContent = 
+          `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
-        if (timeRemaining <= 300) {
+        if (remainingSeconds <= 300) {
           document.getElementById("timerBadge").classList.add("timer-warning");
+        } else {
+          document.getElementById("timerBadge").classList.remove("timer-warning");
         }
 
-        if (timeRemaining <= 0) {
+        if (remainingSeconds <= 0) {
           clearInterval(timerInterval);
           autoSubmitOnTimeExpiry();
         }
-      }, 1000);
-    }
+      }
 
-    function updateTimerDisplay() {
-      const minutes = Math.floor(timeRemaining / 60);
-      const seconds = timeRemaining % 60;
-      document.getElementById("timeRemaining").textContent = 
-        `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      updateClock();
+      timerInterval = setInterval(updateClock, 1000);
     }
 
     function autoSubmitOnTimeExpiry() {
@@ -926,6 +1001,8 @@
       });
 
       currentIndex++;
+      persistQuizState(); // Persist progress after each answer
+
       if (currentIndex < selectedQuestions.length) {
         renderQuestion();
       } else {
@@ -935,8 +1012,10 @@
     });
 
     function showResults() {
+      quizActive = false;
       quizCompleted = true;
       clearInterval(timerInterval);
+      sessionStorage.removeItem(SESSION_STORAGE_KEY); // Clean up session
 
       document.getElementById("quizCard").style.display = "none";
       const resultsCard = document.getElementById("resultsCard");
@@ -1187,6 +1266,11 @@
       } finally {
         btn.disabled = false;
       }
+    }
+
+    function restartQuizSession() {
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      location.reload();
     }
 
     function escapeHTML(str) {
